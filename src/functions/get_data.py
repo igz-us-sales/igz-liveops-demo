@@ -1,12 +1,13 @@
 import mlrun
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
-def get_data(context, source_url: mlrun.DataItem):
-    # Convert the DataItem to a pandas DataFrame
-    df = source_url.as_df()
-
-    # Log the DataFrame size after the run
-    context.log_result("num_rows", df.shape[0])
-
-    # Store the dataset in your artifacts database
-    context.log_dataset("cleaned_data", df=df, index=False, format="csv")
+@mlrun.handler(outputs=["X_train", "X_test", "y_train", "y_test", "full_data"])
+def get_data(data: pd.DataFrame, label_column: str, test_size: float, random_state: int = 42):
+    X = data.drop(label_column, axis=1)
+    y = data[label_column]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
+    return X_train, X_test, y_train, y_test, data

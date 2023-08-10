@@ -1,7 +1,7 @@
 kind: project
 metadata:
-  name: gitops-flow
-  created: '2023-06-30T00:42:17.677000'
+  name: liveops-demo
+  created: '2023-08-08T22:03:39.185241'
 spec:
   functions:
   - url: src/project_setup.py
@@ -53,11 +53,10 @@ spec:
     name: deploy
   artifacts: []
   conda: ''
-  source: v3io:///bigdata/ghactions.zip
-  origin_url: git://github.com/igz-us-sales/mlrun-github-actions-demo#refs/heads/master
+  source: v3io:///bigdata/liveops.zip
+  origin_url: git://github.com/igz-us-sales/igz-liveops-demo.git#refs/heads/master
   load_source_on_run: true
   desired_state: online
-  owner: nick
   default_image: .mlrun/func-gitops-flow-image-builder:latest
 status:
   state: online

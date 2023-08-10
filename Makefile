@@ -3,7 +3,7 @@
 PYTHON_INTERPRETER = python
 SHELL=/bin/bash
 SRC ?= src
-CONDA_ENV ?= mlrun-gh-actions
+CONDA_ENV ?= igz-liveops-demo
 CONDA_PY_VER ?= 3.9
 CONDA_ACTIVATE = source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 

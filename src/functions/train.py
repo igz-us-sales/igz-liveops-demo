@@ -1,18 +1,16 @@
 import mlrun
+import pandas as pd
 from mlrun.frameworks.sklearn import apply_mlrun
 from sklearn import ensemble
-from sklearn.model_selection import train_test_split
 
 
-def train_model(context, dataset: mlrun.DataItem, label_column: str, test_size: float):
-    # Initialize our dataframes
-    df = dataset.as_df()
-    X = df.drop(label_column, axis=1)
-    y = df[label_column]
-
-    # Train/Test split Iris data-set
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-
+@mlrun.handler()
+def train_model(
+    X_train: pd.DataFrame,
+    y_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,
+):
     # Pick an ideal ML model
     model = ensemble.RandomForestClassifier()
 

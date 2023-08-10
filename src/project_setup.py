@@ -15,7 +15,7 @@ def assert_build():
 
 def create_and_set_project(
     git_source: str,
-    name: str = "gitops-flow",
+    name: str = "liveops-demo",
     default_image: str = None,
     default_base_image: str = "mlrun/mlrun:1.3.3",
     user_project: bool = False,
@@ -48,7 +48,7 @@ def create_and_set_project(
                 name="image-builder",
                 handler="assert_build",
                 kind="job",
-                image=default_base_image
+                image=default_base_image,
             )
             build_status = project.build_function(
                 function=image_builder,
