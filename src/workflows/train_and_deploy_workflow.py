@@ -21,6 +21,15 @@ def pipeline(
         params={"label_column": label_column, "test_size": 0.10},
         outputs=["X_train", "X_test", "y_train", "y_test", "full_data"],
     )
+    
+    # Validate data
+    validate_fn = project.get_function("validate-data")
+    validate = project.run_function(
+        validate_fn,
+        inputs={"full_data": ingest.outputs["full_data"]},
+        params={"label_column": label_column},
+        outputs=["passed_suite"]
+    )
 
     # Analyze data
     describe_fn = project.get_function("describe")
@@ -30,6 +39,7 @@ def pipeline(
         params={"label_column": label_column},
     )
 
+    # with dsl.Condition(validate.outputs["passed_suite"] == True) as train_condition:
     # Train model
     train_fn = project.get_function("train")
     train = project.run_function(
@@ -52,7 +62,7 @@ def pipeline(
             strategy="random", max_iterations=5
         ),
         outputs=["model", "test_set"],
-    )
+    ).after(validate)
 
     # Deploy model to endpoint
     serving_fn = project.get_function("serving")

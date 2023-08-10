@@ -2,7 +2,7 @@ import importlib
 
 import mlrun
 
-IMAGE_REQUIREMENTS = ["mlrun==1.3.3", "PyGithub==1.59.0"]
+IMAGE_REQUIREMENTS = ["PyGithub==1.59.0", "deepchecks==0.17.4"]
 
 
 def assert_build():
@@ -86,6 +86,13 @@ def create_and_set_project(
         func="src/functions/train.py",
         kind="job",
         handler="train_model",
+        image=default_base_image
+    )
+    project.set_function(
+        name="validate-data",
+        func="src/functions/validate_data.py",
+        kind="job",
+        handler="validate_data_integrity",
     )
     project.set_function(
         name="test",
@@ -122,8 +129,7 @@ def create_and_set_project(
     )
 
     # Set MLRun workflows
-    project.set_workflow(name="train", workflow_path="src/workflows/train.py")
-    project.set_workflow(name="deploy", workflow_path="src/workflows/deploy.py")
+    project.set_workflow(name="main", workflow_path="src/workflows/train_and_deploy_workflow.py")
 
     # Save and return the project:
     project.save()
