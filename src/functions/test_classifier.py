@@ -17,7 +17,9 @@ def eval_model(context, xtest, ytest, model):
         "accuracy": float(sklearn.metrics.accuracy_score(ytest, ypred)),
         "test-error": np.sum(ytest != ypred) / ytest.shape[0],
         "f1": float(sklearn.metrics.f1_score(ytest, ypred, average="macro")),
-        "precision": float(sklearn.metrics.precision_score(ytest, ypred, average="macro")),
+        "precision": float(
+            sklearn.metrics.precision_score(ytest, ypred, average="macro")
+        ),
         "recall": float(sklearn.metrics.recall_score(ytest, ypred, average="macro")),
     }
     return ypred, metrics
@@ -49,7 +51,9 @@ def create_issue(context, models, comparison_metric):
     repo = g.get_organization("igz-us-sales").get_repo("mlrun-github-actions-demo")
 
     # Create issue
-    repo.create_issue(f"Train Results - Run {context.uid}", body=body, assignee="xsqian")
+    repo.create_issue(
+        f"Train Results - Run {context.uid}", body=body, assignee="xsqian"
+    )
 
     # Trigger deployment based on model metrics
     if context.get_param("force_deploy") or deploy_new_model:
@@ -58,7 +62,9 @@ def create_issue(context, models, comparison_metric):
 
 def trigger_deployment(context, repo, model_path):
     context.logger.info("TRIGGER_DEPLOYMENT")
-    deploy_workflow = [x for x in repo.get_workflows() if x.name == "deploy-workflow"][0]
+    deploy_workflow = [x for x in repo.get_workflows() if x.name == "deploy-workflow"][
+        0
+    ]
     deploy_workflow.create_dispatch(ref="master", inputs={"model_path": model_path})
     context.logger.info(deploy_workflow)
 
@@ -84,12 +90,16 @@ def test_classifier(
 
     #     # Evaluate existing model if parameter is passed
     if context.get_param("existing_model_path"):
-        models["existing_model"] = {"model_path": context.get_param("existing_model_path")}
+        models["existing_model"] = {
+            "model_path": context.get_param("existing_model_path")
+        }
 
     for model_name, model_config in models.items():
         # Load model
         try:
-            model_file, model_obj, _ = get_model(model_config["model_path"], suffix=".pkl")
+            model_file, model_obj, _ = get_model(
+                model_config["model_path"], suffix=".pkl"
+            )
             model_obj = load(open(model_file, "rb"))
         except Exception as a:
             raise Exception("model location likely specified")
@@ -114,11 +124,15 @@ def test_classifier(
         if ypred.ndim == 1 or ypred.shape[1] == 1:
             score_names = [predictions_column]
         else:
-            score_names = [f"{predictions_column}_" + str(x) for x in range(ypred.shape[1])]
+            score_names = [
+                f"{predictions_column}_" + str(x) for x in range(ypred.shape[1])
+            ]
 
         # Log test set predictions
         df = pd.concat([xtest, ytest, pd.DataFrame(ypred, columns=score_names)], axis=1)
-        context.log_dataset(f"test_set_preds-{model_name}", df=df, format="parquet", index=False)
+        context.log_dataset(
+            f"test_set_preds-{model_name}", df=df, format="parquet", index=False
+        )
 
     # Create GitHub issue for run
     if post_github:

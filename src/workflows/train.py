@@ -40,7 +40,25 @@ def pipeline(
             "y_train": ingest.outputs["y_train"],
             "y_test": ingest.outputs["y_test"],
         },
+        hyperparams={
+            "bootstrap": [True, False],
+            "max_depth": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
+            "min_samples_leaf": [1, 2, 4],
+            "min_samples_split": [2, 5, 10],
+            "n_estimators": [200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
+        },
+        selector="max.accuracy",
+        hyper_param_options=mlrun.model.HyperParamOptions(
+            strategy="random", max_iterations=5
+        ),
         outputs=["model", "test_set"],
+    )
+
+    # Deploy model to endpoint
+    serving_fn = project.get_function("serving")
+    serving_fn.set_tracking()
+    deploy = project.deploy_function(
+        serving_fn, models=[{"key": "model", "model_path": train.outputs["model"]}]
     )
 
     # # Evaluate model and optionally trigger deployment pipeline

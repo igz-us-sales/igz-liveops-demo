@@ -28,7 +28,9 @@ def init_context(context):
 def handler(context, event):
     for i in range(randint(10, 30)):
         data_point = choice(context.test_data)
-        resp = requests.post(url=f"{context.addr}/{PREDICT_ROUTE}", json={"inputs": [data_point]})
+        resp = requests.post(
+            url=f"{context.addr}/{PREDICT_ROUTE}", json={"inputs": [data_point]}
+        )
         print(resp.json())
         sleep(uniform(0.2, 1.7))
     return

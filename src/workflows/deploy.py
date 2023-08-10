@@ -12,9 +12,9 @@ def pipeline(model_path: str, label_column: str = "label"):
     create_stream_fn = project.get_function("create-drift-stream")
     create_stream = project.run_function(
         create_stream_fn,
-        params={"stream_path": f"pipelines/{project.name}/model-endpoints/log_stream"}
+        params={"stream_path": f"pipelines/{project.name}/model-endpoints/log_stream"},
     )
-    
+
     # Deploy model to endpoint
     serving_fn = project.get_function("serving")
     serving_fn.set_tracking()
@@ -25,7 +25,9 @@ def pipeline(model_path: str, label_column: str = "label"):
     # Deploy a live traffic simulator
     simulate_traffic_fn = project.get_function("simulate-traffic")
     simulate_traffic_fn.apply(mlrun.mount_v3io())
-    simulate_traffic_fn.add_trigger(name="cron", spec=nuclio.triggers.CronTrigger(interval="1m"))
+    simulate_traffic_fn.add_trigger(
+        name="cron", spec=nuclio.triggers.CronTrigger(interval="1m")
+    )
     project.deploy_function(
         simulate_traffic_fn,
         env={
