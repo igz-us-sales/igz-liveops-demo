@@ -6,16 +6,22 @@ from sklearn import ensemble
 
 @mlrun.handler()
 def train_model(
-    X_train: pd.DataFrame,
-    y_train: pd.DataFrame,
-    X_test: pd.DataFrame,
-    y_test: pd.DataFrame,
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    label_column: str,
     bootstrap: bool,
     max_depth: int,
     min_samples_leaf: int,
     min_samples_split: int,
     n_estimators: int,
 ):
+    
+    # X, y split
+    X_train = train.drop(label_column, axis=1)
+    y_train = train[label_column]
+    X_test = test.drop(label_column, axis=1)
+    y_test = test[label_column]
+    
     # Pick an ideal ML model
     model = ensemble.RandomForestClassifier(
         bootstrap=bootstrap,

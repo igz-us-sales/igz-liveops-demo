@@ -70,10 +70,9 @@ def create_and_set_project(
 
     # Set MLRun functions
     project.set_function(
-        name="get-data",
-        func="src/functions/get_data.py",
+        name="data",
+        func="src/functions/data.py",
         kind="job",
-        handler="get_data",
     )
     project.set_function(
         name="describe",
@@ -89,10 +88,9 @@ def create_and_set_project(
         image=default_base_image
     )
     project.set_function(
-        name="validate-data",
-        func="src/functions/validate_data.py",
+        name="validate",
+        func="src/functions/validate.py",
         kind="job",
-        handler="validate_data_integrity",
     )
     project.set_function(
         name="fail",

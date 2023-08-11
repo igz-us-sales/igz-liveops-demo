@@ -9,10 +9,6 @@ spec:
     kind: job
     image: mlrun/mlrun:1.3.3
     handler: assert_build
-  - url: src/functions/get_data.py
-    name: get-data
-    kind: job
-    handler: get_data
   - url: hub://describe
     name: describe
     kind: job
@@ -47,14 +43,16 @@ spec:
     name: create-drift-stream
     kind: job
     handler: create_drift_stream
-  - url: src/functions/validate_data.py
-    name: validate-data
-    kind: job
-    handler: validate_data_integrity
   - url: src/functions/fail_op.py
     name: fail
     kind: job
     handler: fail
+  - url: src/functions/data.py
+    name: data
+    kind: job
+  - url: src/functions/validate.py
+    name: validate
+    kind: job
   workflows:
   - path: src/workflows/train_and_deploy_workflow.py
     name: main

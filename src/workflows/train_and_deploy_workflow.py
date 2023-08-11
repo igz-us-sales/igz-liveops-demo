@@ -14,80 +14,95 @@ def pipeline(
     project = mlrun.get_current_project()
 
     # Ingest data
-    ingest_fn = project.get_function("get-data")
     ingest = project.run_function(
-        ingest_fn,
+        "data",
+        handler="get_data",
         inputs={"data": source_url},
-        params={"label_column": label_column, "test_size": 0.10},
-        outputs=["X_train", "X_test", "y_train", "y_test", "full_data"],
+        outputs=["data"],
     )
     
-    # Validate data
-    validate_fn = project.get_function("validate-data")
-    validate = project.run_function(
-        validate_fn,
-        inputs={"full_data": ingest.outputs["full_data"]},
+    # Validate data integrity
+    validate_data_integrity = project.run_function(
+        "validate",
+        handler="validate_data_integrity",
+        inputs={"data": ingest.outputs["data"]},
+        params={"label_column": label_column},
+        outputs=["passed_suite"],
+    )
+    
+    # Analyze data
+    project.run_function(
+        "describe",
+        inputs={"table": ingest.outputs["data"]},
+        params={"label_column": label_column},
+    )
+    
+    # Process data
+    process = project.run_function(
+        "data",
+        handler="process_data",
+        inputs={"data": ingest.outputs["data"]},
+        params={"label_column": label_column, "test_size": 0.10},
+        outputs=["train", "test"],
+    ).after(validate_data_integrity)
+    
+    # Validate train test split
+    validate_train_test_split = project.run_function(
+        "validate",
+        handler="validate_train_test_split",
+        inputs={"train" : process.outputs["train"], "test" : process.outputs["test"]},
         params={"label_column": label_column},
         outputs=["passed_suite"]
     )
 
-    # Analyze data
-    describe_fn = project.get_function("describe")
-    project.run_function(
-        describe_fn,
-        inputs={"table": ingest.outputs["full_data"]},
-        params={"label_column": label_column},
+    
+#     with dsl.Condition(
+#         validate_data_integrity.outputs["passed_suite"] == False or 
+#         validate_train_test_split.outputs["passed_suite"] == False
+#     ):
+#         project.run_function("fail", params={"message" : "Data validation failed"})
+    
+#     with dsl.Condition(validate_data_integrity.outputs["passed_suite"] == True and 
+#         validate_train_test_split.outputs["passed_suite"] == True
+#     ):
+    train = project.run_function(
+        "train",
+        inputs={
+            "train": process.outputs["train"],
+            "test": process.outputs["test"],
+        },
+        params={"label_column":label_column},
+        hyperparams={
+            "bootstrap": [True, False],
+            "max_depth": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
+            "min_samples_leaf": [1, 2, 4],
+            "min_samples_split": [2, 5, 10],
+            "n_estimators": [200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
+        },
+        selector="max.accuracy",
+        hyper_param_options=mlrun.model.HyperParamOptions(
+            strategy="random", max_iterations=5
+        ),
+        outputs=["model"],
+    ).after(validate_train_test_split)
+
+    validate_model = project.run_function(
+        "validate",
+        handler="validate_model",
+        inputs={
+            "train": process.outputs["train"],
+            "test": process.outputs["test"],
+        },
+        params={
+            "model_path" : train.outputs["model"],
+            "label_column" : label_column
+        },
+        outputs=["passed_suite"]
     )
-    
-    with dsl.Condition(validate.outputs["passed_suite"] == False):
-        project.run_function("fail", params={"message" : "Data validation failed"})
-    
-    with dsl.Condition(validate.outputs["passed_suite"] == True):
-        train_fn = project.get_function("train")
-        train = project.run_function(
-            train_fn,
-            inputs={
-                "X_train": ingest.outputs["X_train"],
-                "X_test": ingest.outputs["X_test"],
-                "y_train": ingest.outputs["y_train"],
-                "y_test": ingest.outputs["y_test"],
-            },
-            hyperparams={
-                "bootstrap": [True, False],
-                "max_depth": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
-                "min_samples_leaf": [1, 2, 4],
-                "min_samples_split": [2, 5, 10],
-                "n_estimators": [200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
-            },
-            selector="max.accuracy",
-            hyper_param_options=mlrun.model.HyperParamOptions(
-                strategy="random", max_iterations=5
-            ),
-            outputs=["model", "test_set"],
-        ).after(validate)
 
-        # Deploy model to endpoint
-        serving_fn = project.get_function("serving")
-        serving_fn.set_tracking()
-        deploy = project.deploy_function(
-            serving_fn, models=[{"key": "model", "model_path": train.outputs["model"]}]
-        )
-
-    
-        
-    
-
-    # # Evaluate model and optionally trigger deployment pipeline
-    # test_fn = project.get_function("test")
-    # project.run_function(
-    #     test_fn,
-    #     inputs={"test_set": train.outputs["test_set"]},
-    #     params={
-    #         "label_column": label_column,
-    #         "new_model_path": train.outputs["model"],
-    #         "existing_model_path": existing_model_path,
-    #         "comparison_metric": "accuracy",
-    #         "post_github": post_github,
-    #         "force_deploy": force_deploy,
-    #     },
-    # )
+    # Deploy model to endpoint
+    serving_fn = project.get_function("serving")
+    serving_fn.set_tracking()
+    deploy = project.deploy_function(
+        serving_fn, models=[{"key": "model", "model_path": train.outputs["model"]}]
+    ).after(validate_model)
