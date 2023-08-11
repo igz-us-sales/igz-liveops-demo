@@ -26,5 +26,5 @@ def validate_data_integrity(full_data: pd.DataFrame, label_column: str):
     # Export results
     passed_suite = suite_result.passed()
     suite_report = suite_result.save_as_html()
-
+    
     return passed_suite, suite_report

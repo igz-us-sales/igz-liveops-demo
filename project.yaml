@@ -51,6 +51,10 @@ spec:
     name: validate-data
     kind: job
     handler: validate_data_integrity
+  - url: src/functions/fail_op.py
+    name: fail
+    kind: job
+    handler: fail
   workflows:
   - path: src/workflows/train_and_deploy_workflow.py
     name: main

@@ -95,6 +95,12 @@ def create_and_set_project(
         handler="validate_data_integrity",
     )
     project.set_function(
+        name="fail",
+        func="src/functions/fail_op.py",
+        kind="job",
+        handler="fail",
+    )
+    project.set_function(
         name="test",
         func="src/functions/test_classifier.py",
         kind="job",
