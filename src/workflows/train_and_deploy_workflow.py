@@ -9,6 +9,7 @@ def pipeline(
     source_url: str = "https://s3.wasabisys.com/iguazio/data/model-monitoring/iris_dataset.csv",
     label_column: str = "label",
     post_github: bool = True,
+    allow_validation_failure: bool = False,
 ):
     # Get our project object
     project = mlrun.get_current_project()
@@ -20,23 +21,26 @@ def pipeline(
         inputs={"data": source_url},
         outputs=["data"],
     )
-    
+
     # Validate data integrity
     validate_data_integrity = project.run_function(
         "validate",
         handler="validate_data_integrity",
         inputs={"data": ingest.outputs["data"]},
-        params={"label_column": label_column},
+        params={
+            "label_column": label_column,
+            "allow_validation_failure": allow_validation_failure,
+        },
         outputs=["passed_suite"],
     )
-    
+
     # Analyze data
     project.run_function(
         "describe",
         inputs={"table": ingest.outputs["data"]},
         params={"label_column": label_column},
     )
-    
+
     # Process data
     process = project.run_function(
         "data",
@@ -45,33 +49,26 @@ def pipeline(
         params={"label_column": label_column, "test_size": 0.10},
         outputs=["train", "test"],
     ).after(validate_data_integrity)
-    
+
     # Validate train test split
     validate_train_test_split = project.run_function(
         "validate",
         handler="validate_train_test_split",
-        inputs={"train" : process.outputs["train"], "test" : process.outputs["test"]},
-        params={"label_column": label_column},
-        outputs=["passed_suite"]
+        inputs={"train": process.outputs["train"], "test": process.outputs["test"]},
+        params={
+            "label_column": label_column,
+            "allow_validation_failure": allow_validation_failure,
+        },
+        outputs=["passed_suite"],
     )
 
-    
-#     with dsl.Condition(
-#         validate_data_integrity.outputs["passed_suite"] == False or 
-#         validate_train_test_split.outputs["passed_suite"] == False
-#     ):
-#         project.run_function("fail", params={"message" : "Data validation failed"})
-    
-#     with dsl.Condition(validate_data_integrity.outputs["passed_suite"] == True and 
-#         validate_train_test_split.outputs["passed_suite"] == True
-#     ):
     train = project.run_function(
         "train",
         inputs={
             "train": process.outputs["train"],
             "test": process.outputs["test"],
         },
-        params={"label_column":label_column},
+        params={"label_column": label_column},
         hyperparams={
             "bootstrap": [True, False],
             "max_depth": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
@@ -94,10 +91,11 @@ def pipeline(
             "test": process.outputs["test"],
         },
         params={
-            "model_path" : train.outputs["model"],
-            "label_column" : label_column
+            "model_path": train.outputs["model"],
+            "label_column": label_column,
+            "allow_validation_failure": allow_validation_failure,
         },
-        outputs=["passed_suite"]
+        outputs=["passed_suite"],
     )
 
     # Deploy model to endpoint

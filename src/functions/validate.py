@@ -1,8 +1,13 @@
 import mlrun
 import pandas as pd
 from deepchecks.tabular import Dataset
-from deepchecks.tabular.suites import data_integrity, train_test_validation, model_evaluation
+from deepchecks.tabular.suites import (
+    data_integrity,
+    train_test_validation,
+    model_evaluation,
+)
 import cloudpickle
+
 
 def create_deepchecks_dataset(df: pd.DataFrame, label_column: str) -> Dataset:
     # Get numerical and categorical columns based on dataframe types
@@ -12,14 +17,16 @@ def create_deepchecks_dataset(df: pd.DataFrame, label_column: str) -> Dataset:
     categorical_columns = list(
         set(df.select_dtypes("object").columns) - set([label_column])
     )
-    return Dataset(
-        df=df, label=label_column, cat_features=categorical_columns
-    )
+    return Dataset(df=df, label=label_column, cat_features=categorical_columns)
 
 
-@mlrun.handler(outputs=["passed_suite", "suite_report:file"])
-def validate_data_integrity(data: pd.DataFrame, label_column: str):
-
+@mlrun.handler()
+def validate_data_integrity(
+    context: mlrun.MLClientCtx,
+    data: pd.DataFrame,
+    label_column: str,
+    allow_validation_failure: bool = False,
+):
     # Create deepchecks dataset with column metadata
     dataset = create_deepchecks_dataset(df=data, label_column=label_column)
 
@@ -31,13 +38,22 @@ def validate_data_integrity(data: pd.DataFrame, label_column: str):
     passed_suite = suite_result.passed()
     suite_report = suite_result.save_as_html()
 
-    return passed_suite, suite_report
+    context.log_result("passed_suite", passed_suite)
+    context.log_artifact("suite_report", local_path=suite_report)
+
+    assert (
+        allow_validation_failure or passed_suite == True
+    ), "Data integrity validation failed"
 
 
-
-@mlrun.handler(outputs=["passed_suite", "suite_report:file"])
-def validate_train_test_split(train: pd.DataFrame, test: pd.DataFrame, label_column: str):
-    
+@mlrun.handler()
+def validate_train_test_split(
+    context: mlrun.MLClientCtx,
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    label_column: str,
+    allow_validation_failure: bool = False,
+):
     # Create deepchecks dataset with column metadata
     train_dataset = create_deepchecks_dataset(df=train, label_column=label_column)
     test_dataset = create_deepchecks_dataset(df=test, label_column=label_column)
@@ -45,25 +61,35 @@ def validate_train_test_split(train: pd.DataFrame, test: pd.DataFrame, label_col
     # Run suite
     train_test_validation_suite = train_test_validation()
     suite_result = train_test_validation_suite.run(
-        train_dataset=train_dataset,
-        test_dataset=test_dataset
+        train_dataset=train_dataset, test_dataset=test_dataset
     )
 
     # Export results
     passed_suite = suite_result.passed()
     suite_report = suite_result.save_as_html()
-    
-    return passed_suite, suite_report
 
-@mlrun.handler(outputs=["passed_suite", "suite_report:file"])
+    context.log_result("passed_suite", passed_suite)
+    context.log_artifact("suite_report", local_path=suite_report)
+
+    assert (
+        allow_validation_failure or passed_suite == True
+    ), "Train test split validation failed"
+
+
+@mlrun.handler()
 def validate_model(
-    train: pd.DataFrame, test: pd.DataFrame, model_path: str, label_column: str
+    context: mlrun.MLClientCtx,
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    model_path: str,
+    label_column: str,
+    allow_validation_failure: bool = False,
 ):
     # Load model
     model_file, *_ = mlrun.artifacts.get_model(model_path)
     with open(model_file, "rb") as f:
         model = cloudpickle.load(f)
-    
+
     # Create deepchecks dataset with column metadata
     train_dataset = create_deepchecks_dataset(df=train, label_column=label_column)
     test_dataset = create_deepchecks_dataset(df=test, label_column=label_column)
@@ -71,13 +97,14 @@ def validate_model(
     # Run suite
     model_evaluation_suite = model_evaluation()
     suite_result = model_evaluation_suite.run(
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        model=model
+        train_dataset=train_dataset, test_dataset=test_dataset, model=model
     )
 
     # Export results
     passed_suite = suite_result.passed()
     suite_report = suite_result.save_as_html()
-    
-    return passed_suite, suite_report
+
+    context.log_result("passed_suite", passed_suite)
+    context.log_artifact("suite_report", local_path=suite_report)
+
+    assert allow_validation_failure or passed_suite == True, "Model validation failed"
