@@ -1,12 +1,9 @@
+import cloudpickle
 import mlrun
 import pandas as pd
 from deepchecks.tabular import Dataset
-from deepchecks.tabular.suites import (
-    data_integrity,
-    train_test_validation,
-    model_evaluation,
-)
-import cloudpickle
+from deepchecks.tabular.suites import (data_integrity, model_evaluation,
+                                       train_test_validation)
 
 
 def create_deepchecks_dataset(df: pd.DataFrame, label_column: str) -> Dataset:

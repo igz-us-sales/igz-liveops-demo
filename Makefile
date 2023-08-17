@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 PYTHON_INTERPRETER = python
-SHELL=/bin/bash
+SHELL=/bin/bash -e
 SRC ?= src
 CONDA_ENV ?= igz-liveops-demo
 CONDA_PY_VER ?= 3.9
@@ -57,10 +57,12 @@ flake8: ## Run flake8 lint
 
 .PHONY: conda-env
 conda-env: ## Create a conda environment
-	@echo "Creating new conda environment $(CONDA_ENV)..."
-	conda create -n $(CONDA_ENV) -y python=$(CONDA_PY_VER) ipykernel graphviz pip protobuf=3.20.3 poetry==1.5.0
+	@if ! conda env list | grep -q $(CONDA_ENV); then \
+		echo "Creating new conda environment $(CONDA_ENV)..."; \
+		conda create -n $(CONDA_ENV) -y python=$(CONDA_PY_VER) ipykernel graphviz pip protobuf=3.20.3; \
+	fi
 	@echo "Installing dependencies"
-	$(CONDA_ACTIVATE) $(CONDA_ENV); pip install -r requirements.txt
+	$(CONDA_ACTIVATE) $(CONDA_ENV); pip install -r requirements.txt -r dev-requirements.txt
 
 .PHONY: test
 test: ## Run unit tests via pytest
