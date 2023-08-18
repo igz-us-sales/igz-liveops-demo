@@ -1,15 +1,10 @@
 name: training-workflow
 on: 
   workflow_dispatch:
-    inputs:
-      existing_model_path:
-        description: 'Model path of existing model for comparison'     
-        required: false
-        default: 'None'
 
 jobs:
-  drift-dected:
-    name: drift-trigged
+  approval-gate:
+    name: approval-gate
     runs-on: ubuntu-latest
     environment: 'dev'
     steps:
@@ -25,8 +20,8 @@ jobs:
 
     - name: echo out github.event.issue.number
       run: echo ${{github.event.issue.number}} 
-    - name: Model drift trigger re-training
-      run: echo do nothing, just kick off the apprval process for re-training
+    - name: Approval gate
+      run: echo do nothing, just kick off the apprval process for training
 
       env:
         V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
@@ -43,7 +38,7 @@ jobs:
     name: training-model
     runs-on: ubuntu-latest
     environment: 'qa'
-    needs: [drift-dected]
+    needs: [approval-gate]
     steps:
     - name: echo github.event.comment.body
       run: echo ${{github.event.comment.body}}    
@@ -62,13 +57,7 @@ jobs:
     - name: Training model
 
       run: |
-        python -m mlrun project ./ --run train \
-        --secrets env=MY_GITHUB_TOKEN \
-        --git-repo ${GITHUB_REPOSITORY} \
-        --git-issue 1 \
-        -w -x commit=${COMMIT:33} \
-        -a existing_model_path=${{ github.event.inputs.existing_model_path}} \
-        -a force_deploy=true
+        python main.py
       env:
         V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
         V3IO_PASSWORD: ${{ secrets.V3IO_USERNAME }}
@@ -76,7 +65,6 @@ jobs:
         V3IO_ACCESS_KEY: ${{ secrets.V3IO_ACCESS_KEY }}
         MLRUN_DBPATH: ${{ secrets.MLRUN_DBPATH }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }} 
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         CMD: ${{ github.event.comment.body}}  
         COMMIT: ${{ github.sha}}
