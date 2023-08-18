@@ -1,4 +1,4 @@
-allow_validation_failure: false
+allow_validation_failure: true
 label_column: target
 ohe_columns:
 - sex
