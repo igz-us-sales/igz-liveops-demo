@@ -3,42 +3,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  approval-gate:
-    name: approval-gate
-    runs-on: ubuntu-latest
-    environment: 'dev'
-    steps:
-    - name: echo github.event.comment.body
-      run: echo ${{github.event.comment.body}}    
-
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.9'
-        architecture: 'x64'
-
-    - name: echo out github.event.issue.number
-      run: echo ${{github.event.issue.number}} 
-    - name: Approval gate
-      run: echo do nothing, just kick off the apprval process for training
-
-      env:
-        V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
-        V3IO_PASSWORD: ${{ secrets.V3IO_USERNAME }}
-        V3IO_API: ${{ secrets.V3IO_API }}
-        V3IO_ACCESS_KEY: ${{ secrets.V3IO_ACCESS_KEY }}
-        MLRUN_DBPATH: ${{ secrets.MLRUN_DBPATH }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        CMD: ${{ github.event.comment.body}}  
-        COMMIT: ${{ github.sha}}
-
   training-workflow:
     name: training-model
     runs-on: ubuntu-latest
-    environment: 'qa'
-    needs: [approval-gate]
+    
     steps:
     - name: echo github.event.comment.body
       run: echo ${{github.event.comment.body}}    
@@ -58,6 +26,7 @@ jobs:
 
       run: |
         python main.py
+        
       env:
         V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
         V3IO_PASSWORD: ${{ secrets.V3IO_USERNAME }}
