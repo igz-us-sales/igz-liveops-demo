@@ -8,6 +8,7 @@ def pipeline(
     label_column: str = "label",
     allow_validation_failure: bool = False,
     ohe_columns: list = "None",
+    test_size: float = 0.1
 ):
     # Get our project object
     project = mlrun.get_current_project()
@@ -47,7 +48,7 @@ def pipeline(
         inputs={"data": ingest.outputs["data"]},
         params={
             "label_column": label_column,
-            "test_size": 0.10,
+            "test_size": test_size,
             "ohe_columns": ohe_columns,
         },
         outputs=["train", "test"],

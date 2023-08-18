@@ -1,0 +1,10 @@
+allow_validation_failure: true
+label_column: target
+ohe_columns:
+- sex
+- cp
+- slope
+- thal
+- restecg
+source_url: /User/igz-liveops-demo/heart.csv
+test_size: 0.1
