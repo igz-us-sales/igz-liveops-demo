@@ -6,5 +6,5 @@ ohe_columns:
 - slope
 - thal
 - restecg
-source_url: /User/igz-liveops-demo/heart.csv
+source_url: /User/igz-liveops-demo/data/heart.csv
 test_size: 0.1
