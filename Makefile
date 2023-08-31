@@ -19,14 +19,6 @@ help: ## Display available commands
 all:
 	$(error please pick a target)
 
-.PHONY: install-requirements
-install-requirements: ## Install all requirements needed for development
-	$(PYTHON_INTERPRETER) -m poetry install
-
-.PHONY: package-wheel
-package-wheel: clean ## Build python package wheel
-	$(PYTHON_INTERPRETER) -m poetry build
-
 .PHONY: clean
 clean: ## Delete all compiled Python files
 	find . -type f -name "*.py[co]" -delete
